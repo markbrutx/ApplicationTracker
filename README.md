@@ -51,5 +51,9 @@ python main.py
 
 # Если хотите собрать .exe
 ```
-pyinstaller --onefile --windowed --icon=app_icon.ico --name=JobTrackerApp main.py
+pyinstaller --windowed --icon=app_icon.ico --name=JobTrackerApp2 main.py
 ```
+
+## Планируемые фичи
+- Возможность на хоткеи вставлять в поле Cover letter
+- Исправить лаг для сборки при сохранении таблицы
