@@ -38,3 +38,5 @@ MANIFEST
 # Usually these folders are in .gitignore, but ensure they are included
 *.spec
 pyinstaller/
+
+*.csv

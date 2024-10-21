@@ -6,6 +6,7 @@ import keyboard
 import pygame
 import os
 import json
+import time
 
 RESPONSES_CSV = 'responses.csv'
 CUSTOM_JOB_BOARDS_CSV = 'custom_job_boards.csv'
@@ -21,7 +22,8 @@ class JobTrackerApp(tk.Tk):
         self.init_pygame()  
         self.setup_styles()
         self.create_widgets()
-        self.load_data()  # Initial data load for display
+        self.load_data()
+        self._selection_made = False
 
     def setup_styles(self):
         style = ttk.Style()
@@ -52,6 +54,8 @@ class JobTrackerApp(tk.Tk):
         style.configure("TCombobox", fieldbackground="#1e1e1e", background="#252526", foreground="#d4d4d4", arrowcolor="#d4d4d4")
         style.map("TCombobox", fieldbackground=[('readonly', '#1e1e1e')], selectbackground=[('readonly', '#1e1e1e')],
                 selectforeground=[('readonly', '#d4d4d4')])
+        style.configure('Large.TCombobox', font=('Helvetica', 36)) 
+        
 
     def create_widgets(self):
         tab_control = ttk.Notebook(self)
@@ -73,14 +77,16 @@ class JobTrackerApp(tk.Tk):
         self.summary_tree.heading('Total Responses', text='Total Responses')
         self.summary_tree.pack(fill=tk.BOTH, expand=True)
 
-        self.job_board_entry = ttk.Combobox(self, values=[row[0] for row in self.load_custom_job_boards()])
-        self.job_board_entry.pack(fill=tk.X)
+        self.job_board_entry = ttk.Combobox(self, style='Large.TCombobox', values=[row[0] for row in self.load_custom_job_boards()], width=50)
+        self.job_board_entry.pack(fill=tk.X, pady=(20, 0))
+        self.job_board_entry.bind('<KeyRelease>', self.handle_keyrelease_debounced)
+        self.job_board_entry.bind('<<ComboboxSelected>>', self.on_selection)
 
         update_button = ttk.Button(self, text='Update Counter', command=self.update_response)
-        update_button.pack(fill=tk.X, pady=(0, 0))
+        update_button.pack(fill=tk.X, pady=(0, 10))
 
         delete_button = ttk.Button(self, text="Delete Selected", command=self.delete_selected)
-        delete_button.pack(fill=tk.X, pady=(0, 0))
+        delete_button.pack(fill=tk.X, pady=(0, 10))
 
         clear_today_button = ttk.Button(self, text="Clear Today's Data", command=self.clear_today)
         clear_today_button.pack(fill=tk.X, pady=(0, 10))
@@ -91,6 +97,11 @@ class JobTrackerApp(tk.Tk):
         export_json_button.pack(fill=tk.X, pady=(0, 10))
         import_json_button = ttk.Button(self, text="Import from JSON", command=self.import_from_json)
         import_json_button.pack(fill=tk.X, pady=(0, 10))
+
+        refresh_button = ttk.Button(self, text="Refresh View", command=self.load_data)
+        refresh_button.pack(fill=tk.X, pady=(0, 10))
+
+
 
     def init_pygame(self):
         pygame.mixer.init()
@@ -191,6 +202,29 @@ class JobTrackerApp(tk.Tk):
             self.write_data(updated_boards, CUSTOM_JOB_BOARDS_CSV)
             self.load_data()
             messagebox.showinfo("Import Successful", "Data has been imported from " + file_path)
+
+    def handle_keyrelease_debounced(self, event):
+        if hasattr(self, '_last_key_event_time') and time.time() - self._last_key_event_time < 0.3:
+            return
+        if self.job_board_entry.get() and not self._selection_made:
+            self._last_key_event_time = time.time()
+            self.after(300, lambda: self.update_job_board_values(event))
+
+    def update_job_board_values(self, event):
+        value = self.job_board_entry.get()
+        if len(value) >= 3:
+            data = [row[0] for row in self.load_custom_job_boards()]
+            filtered_data = [item for item in data if item.lower().startswith(value.lower())]
+            self.job_board_entry['values'] = filtered_data
+            if filtered_data:
+                self.job_board_entry.event_generate('<Down>') 
+
+    def on_selection(self, event):
+        self._selection_made = True  
+        self.after(500, self.reset_selection_flag)  
+
+    def reset_selection_flag(self):
+        self._selection_made = False 
     
 
 if __name__ == '__main__':
