@@ -39,3 +39,8 @@ python main.py
 ```
 
 Следуйте инструкциям на экране для использования приложения.
+
+# Если хотите собрать .exe
+```
+pyinstaller --onefile --windowed --icon=app_icon.ico --name=JobTrackerApp main.py
+```
