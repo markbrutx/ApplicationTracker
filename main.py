@@ -206,18 +206,20 @@ class JobTrackerApp(tk.Tk):
     def handle_keyrelease_debounced(self, event):
         if hasattr(self, '_last_key_event_time') and time.time() - self._last_key_event_time < 0.3:
             return
-        if self.job_board_entry.get() and not self._selection_made:
-            self._last_key_event_time = time.time()
-            self.after(300, lambda: self.update_job_board_values(event))
+        self._last_key_event_time = time.time()
+        self.after(300, lambda: self.update_job_board_values(event))
 
     def update_job_board_values(self, event):
         value = self.job_board_entry.get()
-        if len(value) >= 3:
-            data = [row[0] for row in self.load_custom_job_boards()]
+        data = [row[0] for row in self.load_custom_job_boards()]
+        if value:
             filtered_data = [item for item in data if item.lower().startswith(value.lower())]
-            self.job_board_entry['values'] = filtered_data
-            if filtered_data:
-                self.job_board_entry.event_generate('<Down>') 
+        else:
+            filtered_data = data
+        self.job_board_entry['values'] = filtered_data
+        if filtered_data:
+            self.job_board_entry.event_generate('<Down>')
+
 
     def on_selection(self, event):
         self._selection_made = True  
