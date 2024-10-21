@@ -13,7 +13,29 @@ CUSTOM_JOB_BOARDS_CSV = 'custom_job_boards.csv'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 ERROR_SOUND = 'error_sound.mp3'
 SUCCESS_SOUND = 'success_sound.mp3'
+AUDIO_FOLDER = 'audios'
+success_sounds = [f'{AUDIO_FOLDER}/{i}.mp3' for i in range(1, 6)]
+response_counter = 0
+streak_counter = 0
 
+def play_success_sound():
+    global response_counter, streak_counter
+    if response_counter < 5:
+        sound_to_play = SUCCESS_SOUND
+    else:
+        sound_to_play = success_sounds[response_counter % 5]
+    
+    response_counter = (response_counter + 1) % 10
+    streak_counter = (streak_counter + 1) % 5
+    
+    pygame.mixer.music.load(sound_to_play)
+    pygame.mixer.music.play()
+
+def update_progress_label(data, self):
+    today = datetime.now().date()
+    today_responses = sum(1 for _, timestamp in data if datetime.strptime(timestamp, DATE_FORMAT).date() == today)
+    streak = streak_counter
+    self.progress_label.config(text=f"Today progress: {today_responses}\nStreak: {streak}/5")
 class JobTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -22,7 +44,7 @@ class JobTrackerApp(tk.Tk):
         self.init_pygame()  
         self.setup_styles()
         self.create_widgets()
-        self.load_data()
+        self.load_data()       
         self._selection_made = False
 
     def setup_styles(self):
@@ -55,7 +77,7 @@ class JobTrackerApp(tk.Tk):
         style.map("TCombobox", fieldbackground=[('readonly', '#1e1e1e')], selectbackground=[('readonly', '#1e1e1e')],
                 selectforeground=[('readonly', '#d4d4d4')])
         style.configure('Large.TCombobox', font=('Helvetica', 36)) 
-        
+        style.configure("Progress.TLabel", font=("Helvetica", 14, "bold"), background="#3c3c3c", foreground="#9cdcfe", padding=10)
 
     def create_widgets(self):
         tab_control = ttk.Notebook(self)
@@ -101,6 +123,9 @@ class JobTrackerApp(tk.Tk):
         refresh_button = ttk.Button(self, text="Refresh View", command=self.load_data)
         refresh_button.pack(fill=tk.X, pady=(0, 10))
 
+        self.progress_label = ttk.Label(self, text="Today progress: 0\nStreak: 0/5", style="Progress.TLabel", anchor="center")
+        self.progress_label.pack(pady=(0, 10))
+
 
 
     def init_pygame(self):
@@ -109,7 +134,7 @@ class JobTrackerApp(tk.Tk):
     def play_sound(self, sound_file):
         pygame.mixer.music.load(sound_file)
         pygame.mixer.music.play()
-
+    
     def read_data(self, filepath):
         if not os.path.exists(filepath):
             return []
@@ -130,7 +155,7 @@ class JobTrackerApp(tk.Tk):
         data = self.read_data(RESPONSES_CSV)
         data.append([job_board, datetime.now().strftime(DATE_FORMAT)])
         self.write_data(data, RESPONSES_CSV)
-        self.play_sound(SUCCESS_SOUND)
+        play_success_sound()
         self.load_data()
 
     def load_custom_job_boards(self):
@@ -141,7 +166,7 @@ class JobTrackerApp(tk.Tk):
             ['linkedin.com']
         ]
 
-    def load_data(self):
+    def load_data(self):    
         self.tree.delete(*self.tree.get_children())
         self.summary_tree.delete(*self.summary_tree.get_children())
         data = self.read_data(RESPONSES_CSV)
@@ -157,6 +182,8 @@ class JobTrackerApp(tk.Tk):
                 summary[job_board]['today'] += 1
         for job_board, counts in summary.items():
             self.summary_tree.insert('', 'end', values=(job_board, counts['today'], counts['total']))
+
+        update_progress_label(data,self)
 
     def delete_selected(self):
         selected_item = self.tree.selection()
@@ -227,6 +254,7 @@ class JobTrackerApp(tk.Tk):
 
     def reset_selection_flag(self):
         self._selection_made = False 
+
     
 
 if __name__ == '__main__':
